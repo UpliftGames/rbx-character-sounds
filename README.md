@@ -16,14 +16,14 @@ tl;dr:
 Package.getVersionInfo(): {[string]: string}
 
 -- returns the RbxCharacterSounds script
-Package.get(): ModuleScript
+Package.get(): LocalScript
 
 -- returns a copy of the RbxCharacterSounds script
-Package.getCopy(): ModuleScript
+Package.getCopy(): LocalScript
 
 -- replaces the RbxCharacterSounds under StarterPlayer.StarterPlayerScripts 
 -- with the provided module script
-Package.replace(rbxCharacterSounds: ModuleScript)
+Package.replace(rbxCharacterSounds: LocalScript)
 ```
 
 ## Where's the source?
