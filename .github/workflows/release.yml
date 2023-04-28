@@ -50,7 +50,7 @@ jobs:
           files: src/RbxCharacterSounds
       
       - name: Git Auto Commit
-        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        if: ${{ steps.verify-changed-files.outputs.files_changed == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: stefanzweifel/git-auto-commit-action@v4.16.0
         with:
           commit_message: (${{ env.VERSION }})
@@ -59,21 +59,21 @@ jobs:
           branch: release
       
       - name: Create release
-        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        if: ${{ steps.verify-changed-files.outputs.files_changed == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: softprops/action-gh-release@v0.1.15
         with:
           files: release.rbxm
           tag_name: ${{ env.VERSION }}
       
       - name: Wally login
-        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        if: ${{ steps.verify-changed-files.outputs.files_changed == 'true' || github.event_name == 'workflow_dispatch' }}
         shell: pwsh
         run: |
           mkdir -p $env:USERPROFILE/.wally
           echo '${{ secrets.WALLY_PUBLISHING_TOML }}' > $env:USERPROFILE/.wally/auth.toml
           
       - name: Wally publish
-        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        if: ${{ steps.verify-changed-files.outputs.files_changed == 'true' || github.event_name == 'workflow_dispatch' }}
         run: wally publish
         timeout-minutes: 5
         
