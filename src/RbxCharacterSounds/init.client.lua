@@ -18,7 +18,7 @@ end
 
 local FFlagUserSoundsUseRelativeVelocity = loadFlag('UserSoundsUseRelativeVelocity2')
 local FFlagFixFreeFallingSound = loadFlag('UserFixFreeFallingSound')
-local FFlagUserNewCharacterSoundsApi = loadFlag('UserNewCharacterSoundsApi2')
+local FFlagUserNewCharacterSoundsApi = loadFlag('UserNewCharacterSoundsApi3')
 
 local SOUND_DATA : { [string]: {[string]: any}} = {
 	Climbing = {
@@ -105,9 +105,9 @@ local function getRelativeVelocity(cm, velocity)
 	if not cm then
 		return velocity
 	end
-	local activeSensor = cm.ActiveController and 
+	local activeSensor = cm.ActiveController and
 	(
-		(cm.ActiveController:IsA("GroundController") and cm.GroundSensor) or 
+		(cm.ActiveController:IsA("GroundController") and cm.GroundSensor) or
 		(cm.ActiveController:IsA("ClimbController") and cm.ClimbSensor)
 	)
 	if activeSensor and activeSensor.SensedPart then
@@ -177,65 +177,43 @@ local function initializeSoundSystem(instances: { [string]: Instance })
 
 	local sounds: {[string]: Playable} = {}
 
-	local function initializeSounds()
-		if SoundService.CharacterSoundsUseNewApi == Enum.RolloutState.Enabled then
-			-- initialize Audio Emitter
-			local localPlayer = Players.LocalPlayer
-			local character = localPlayer.Character
-			local curve = {}
-			local i : number = 5
-			local step : number = 1.25 -- determines how fine-grained the curve gets sampled
-			while i < 150 do
-				curve[i] = 5 / i;
-				i *= step;
-			end
-			curve[150] = 0
-			audioEmitter = Instance.new("AudioEmitter", character)
-			audioEmitter.Name = "RbxCharacterSoundsEmitter"
-			audioEmitter:SetDistanceAttenuation(curve)
-			-- initialize sounds
-			for name: string, props: {[string]: any} in pairs(AUDIOPLAYER_DATA) do			
-				local sound = Instance.new("AudioPlayer")
-				local audioPlayerWire: Wire = Instance.new("Wire")
-				sound.Name = name
-				audioPlayerWire.Name = name .. "Wire"
-				-- set default values
-				sound.Archivable = false
-				sound.Volume = 0.65
-				for propName, propValue: any in pairs(props) do
-					(sound :: any)[propName] = propValue
-				end
-				sound.Parent = rootPart
-				audioPlayerWire.Parent = sound
-				audioPlayerWire.SourceInstance = sound
-				audioPlayerWire.TargetInstance = audioEmitter
-				sounds[name] = sound
-			end
-		else
-			-- initialize sounds
-			for name: string, props: {[string]: any} in pairs(SOUND_DATA) do
-				local sound = Instance.new("Sound")
-				sound.Name = name
-				-- set default values
-				sound.Archivable = false
-				sound.RollOffMinDistance = 5
-				sound.RollOffMaxDistance = 150
-				sound.Volume = 0.65
-				for propName, propValue: any in pairs(props) do
-					(sound :: any)[propName] = propValue
-				end
-				sound.Parent = rootPart
-				sounds[name] = sound
-			end
+	if FFlagUserNewCharacterSoundsApi and SoundService.CharacterSoundsUseNewApi == Enum.RolloutState.Enabled then
+		-- initialize Audio Emitter
+		local localPlayer = Players.LocalPlayer
+		local character = localPlayer.Character
+		local curve = {}
+		local i : number = 5
+		local step : number = 1.25 -- determines how fine-grained the curve gets sampled
+		while i < 150 do
+			curve[i] = 5 / i;
+			i *= step;
 		end
-	end
-
-	if FFlagUserNewCharacterSoundsApi then
-		initializeSounds()
+		curve[150] = 0
+		audioEmitter = Instance.new("AudioEmitter", character)
+		audioEmitter.Name = "RbxCharacterSoundsEmitter"
+		audioEmitter:SetDistanceAttenuation(curve)
+		-- initialize sounds
+		for name: string, props: {[string]: any} in pairs(AUDIOPLAYER_DATA) do
+			local sound = Instance.new("AudioPlayer")
+			local audioPlayerWire: Wire = Instance.new("Wire")
+			sound.Name = name
+			audioPlayerWire.Name = name .. "Wire"
+			-- set default values
+			sound.Archivable = false
+			sound.Volume = 0.65
+			for propName, propValue: any in pairs(props) do
+				(sound :: any)[propName] = propValue
+			end
+			sound.Parent = rootPart
+			audioPlayerWire.Parent = sound
+			audioPlayerWire.SourceInstance = sound
+			audioPlayerWire.TargetInstance = audioEmitter
+			sounds[name] = sound
+		end
 	else
 		-- initialize sounds
 		for name: string, props: {[string]: any} in pairs(SOUND_DATA) do
-			local sound: Sound = Instance.new("Sound")
+			local sound = Instance.new("Sound")
 			sound.Name = name
 			-- set default values
 			sound.Archivable = false
@@ -247,21 +225,7 @@ local function initializeSoundSystem(instances: { [string]: Instance })
 			end
 			sound.Parent = rootPart
 			sounds[name] = sound
-		end	
-	end
-
-	local function resetSounds()
-		if not FFlagUserNewCharacterSoundsApi then
-			return
 		end
-		-- Hard reset the Sounds and wires
-		for name: string, sound: Playable in pairs(sounds) do
-			sound:Destroy()
-		end
-		if (audioEmitter) then
-			audioEmitter:Destroy()
-		end
-		table.clear(sounds)
 	end
 
 	local playingLoopedSounds: {[Playable]: boolean?} = {}
@@ -402,14 +366,6 @@ local function initializeSoundSystem(instances: { [string]: Instance })
 		end
 	end)
 
-	local soundServiceChangedConn = nil
-	if FFlagUserNewCharacterSoundsApi then
-		soundServiceChangedConn = SoundService:GetPropertyChangedSignal("CharacterSoundsUseNewApi"):Connect(function()
-			resetSounds()
-			initializeSounds()
-		end)
-	end
-
 	local steppedConn = RunService.Stepped:Connect(function(_, worldDt: number)
 		-- update looped sounds on stepped
 		for sound in pairs(playingLoopedSounds) do
@@ -424,9 +380,6 @@ local function initializeSoundSystem(instances: { [string]: Instance })
 	local function terminate()
 		stateChangedConn:Disconnect()
 		steppedConn:Disconnect()
-		if FFlagUserNewCharacterSoundsApi and (soundServiceChangedConn ~= nil) then
-			soundServiceChangedConn:Disconnect()
-		end
 
 		-- Unparent all sounds and empty sounds table
 		-- This is needed in order to support the case where initializeSoundSystem might be called more than once for the same player,
