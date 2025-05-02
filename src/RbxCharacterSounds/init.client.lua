@@ -17,7 +17,6 @@ local function loadFlag(flag: string)
 end
 
 local FFlagUserSoundsUseRelativeVelocity = loadFlag('UserSoundsUseRelativeVelocity2')
-local FFlagFixFreeFallingSound = loadFlag('UserFixFreeFallingSound')
 local FFlagUserNewCharacterSoundsApi = loadFlag('UserNewCharacterSoundsApi3')
 
 local SOUND_DATA : { [string]: {[string]: any}} = {
@@ -29,9 +28,7 @@ local SOUND_DATA : { [string]: {[string]: any}} = {
 		SoundId = "rbxasset://sounds/uuhhh.mp3",
 	},
 	FreeFalling = {
-		SoundId = if FFlagFixFreeFallingSound
-			then "rbxasset://sounds/action_falling.ogg"
-			else "rbxasset://sounds/action_falling.mp3",
+		SoundId = "rbxasset://sounds/action_falling.ogg",
 		Looped = true,
 	},
 	GettingUp = {
@@ -67,9 +64,7 @@ local AUDIOPLAYER_DATA : { [string]: {[string]: any}} = {
 		AssetId = "rbxasset://sounds/uuhhh.mp3",
 	},
 	FreeFalling = {
-		AssetId = if FFlagFixFreeFallingSound
-			then "rbxasset://sounds/action_falling.ogg"
-			else "rbxasset://sounds/action_falling.mp3",
+		AssetId = "rbxasset://sounds/action_falling.ogg",
 		Looping = true,
 	},
 	GettingUp = {
@@ -270,14 +265,14 @@ local function initializeSoundSystem(instances: { [string]: Instance })
 		[Enum.HumanoidStateType.Freefall] = function()
 			(sounds.FreeFalling :: any).Volume = 0
 			stopPlayingLoopedSounds(sounds.FreeFalling)
-			if FFlagFixFreeFallingSound then
-				setSoundLooped(sounds.FreeFalling, true)
-				if sounds.FreeFalling:IsA("Sound") then
-					sounds.FreeFalling.PlaybackRegionsEnabled = true
-				end
-				(sounds.FreeFalling :: any).LoopRegion = NumberRange.new(2, 9)
-				playSound(sounds.FreeFalling)
+			
+			setSoundLooped(sounds.FreeFalling, true)
+			if sounds.FreeFalling:IsA("Sound") then
+				sounds.FreeFalling.PlaybackRegionsEnabled = true
 			end
+			(sounds.FreeFalling :: any).LoopRegion = NumberRange.new(2, 9)
+			playSound(sounds.FreeFalling)
+			
 			playingLoopedSounds[sounds.FreeFalling] = true
 		end,
 
